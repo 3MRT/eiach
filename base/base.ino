@@ -81,25 +81,19 @@ void loop() {
       Serial.print("Sending pairing request to pylon-id ");
       Serial.println(saved_pylon_addresses[cr_address_index]);
       // pairing
-      char package[MAX_PACKAGE_LENGTH] = {0};
-      package[0] = VERSION;
-      package[1] = 0; // TODO: create checksum
-      package[2] = RR_CODE_LOGIN;
-      package[3] = 9; // get length
-      // source address
-      package[4] = (PERSONAL_ADDRESS >> 8) & 0xff;
-      package[5] = PERSONAL_ADDRESS & 0xff;
-      // destination address
-      package[6] = (saved_pylon_addresses[cr_address_index] >> 8) & 0xff;
-      package[7] = saved_pylon_addresses[cr_address_index] & 0xff;
+      byte package[MAX_PACKAGE_LENGTH] = {0};
+      createPackageHeader(
+        package,
+        RR_CODE_LOGIN,
+        PERSONAL_ADDRESS,
+        saved_pylon_addresses[cr_address_index]
+      );
       // alert channel
       package[8] = ALERT_CHANNEL;
       delay(25); // TODO: investigate why delay is required
-      // printPackage(package);
+      printPackage(package);
 
-      for(int i = 0; i < MAX_PACKAGE_LENGTH; i++) {
-        transmitter0_serial.write(package[i]);
-      }
+      sendPackage(&transmitter0_serial, package);
 
       // set cr_rr_code and cr_timeout to wait for response
       cr_rr_code = package[2];
