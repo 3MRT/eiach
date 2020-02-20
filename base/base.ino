@@ -23,6 +23,9 @@ int16_t cr_address_index = 0; // save where the parsing currently is
 uint8_t cr_rr_code = 0; // request code of current request
 long cr_timeout = 0; // timeout of current request
 long cr_start_time = 0; // for performance tests
+// receiving a package
+byte received_package[MAX_PACKAGE_LENGTH] = {0};
+uint8_t received_package_index = 0;
 
 // true: searching for unconnected devices
 // false: always testing connections to pylons
@@ -60,8 +63,16 @@ void loop() {
   long current_millis = millis();
   // only listen when a package was sent
   if(cr_rr_code > 0 && cr_timeout > 0) {
-    if (transmitter0_serial.available() && cr_timeout <= current_millis) {
-      // TODO: handle received data
+    if (transmitter0_serial.available() 
+        && cr_timeout <= current_millis 
+        && received_package_index < MAX_PACKAGE_LENGTH) {
+      // handle received data
+      if(received_package_index == 0) {
+        received_package[MAX_PACKAGE_LENGTH] = {0};
+      }
+      
+      received_package[received_package_index] = transmitter0_serial.read();
+      received_package_index++;
     }
     else if(cr_timeout < current_millis) {
       // TODO: handle timeout
@@ -69,9 +80,33 @@ void loop() {
       cr_rr_code = 0;
       cr_timeout = 0;
       cr_start_time = 0;
+  
+      // free old package
+      received_package_index = 0;
+      for(int i = 0; i < MAX_PACKAGE_LENGTH; i++) {
+        received_package[i] = 0;
+      }
     }
     else {
       // waiting
+    }
+    // handeling package information
+    if(received_package_index >= MAX_PACKAGE_LENGTH) {
+      // received full package
+      if(testPackage(received_package, PERSONAL_ADDRESS)) {
+        printPackage(received_package);
+        uint16_t source_address = received_package[6] << 5 | received_package[4];
+        // switch(received_package[2]) {}
+      }
+
+      cr_rr_code = 0;
+      cr_timeout = 0;
+      cr_start_time = 0;
+      // free old package
+      received_package_index = 0;
+      for(int i = 0; i < MAX_PACKAGE_LENGTH; i++) {
+        received_package[i] = 0;
+      }
     }
   }
   // when not waiting for a package continue parsing
@@ -91,7 +126,7 @@ void loop() {
       // alert channel
       package[8] = ALERT_CHANNEL;
       delay(25); // TODO: investigate why delay is required
-      printPackage(package);
+      // printPackage(package);
 
       sendPackage(&transmitter0_serial, package);
 

@@ -14,8 +14,8 @@ uint16_t BASE_ADDRESS = NULL;
 uint8_t ALERT_CHANNEL = 0;
 
 // receiving a package
-byte package[MAX_PACKAGE_LENGTH] = {0};
-uint8_t package_index = 0;
+byte received_package[MAX_PACKAGE_LENGTH] = {0};
+uint8_t received_package_index = 0;
 long started_receiving_package = 0;
 
 void setup() {
@@ -35,27 +35,37 @@ void setup() {
 void loop() {
   // receiving packages
   if (transmitter0_serial.available()) {
-    if(package_index == 0) {
-      package[MAX_PACKAGE_LENGTH] = {0};
+    if(received_package_index == 0) {
+      received_package[MAX_PACKAGE_LENGTH] = {0};
       started_receiving_package = millis();
     }
     
-    package[package_index] = transmitter0_serial.read();
-    package_index++;
+    received_package[received_package_index] = transmitter0_serial.read();
+    received_package_index++;
   }
   // handeling package information
-  if(package_index >= MAX_PACKAGE_LENGTH) {
+  if(received_package_index >= MAX_PACKAGE_LENGTH) {
     // received full package
-    if(testPackage(package, PERSONAL_ADDRESS)) {
-      uint16_t source_address = package[6] << 5 | package[4];
-      switch(package[2]) {
+    if(testPackage(received_package, PERSONAL_ADDRESS)) {
+      uint16_t source_address = received_package[6] << 5 | received_package[4];
+      switch(received_package[2]) {
         case RR_CODE_LOGIN:
           // only accept if not logged in before or from same base
           if(BASE_ADDRESS == NULL || BASE_ADDRESS == source_address) {
             // set vars
             BASE_ADDRESS = source_address;
-            ALERT_CHANNEL = package[8];
-            // TODO: respond with RR_CODE_PYLON_STATUS
+            ALERT_CHANNEL = received_package[8];
+            // respond with RR_CODE_PYLON_STATUS
+            byte package[MAX_PACKAGE_LENGTH] = {0};
+            createPackageHeader(
+              package,
+              RR_CODE_PYLON_STATUS,
+              PERSONAL_ADDRESS,
+              BASE_ADDRESS
+            );
+            // TODO: set data
+            sendPackage(&transmitter0_serial, package);
+            
             Serial.print("Accepted RR_CODE_LOGIN from ");
             Serial.print(source_address);
             Serial.print("; Alert channel: ");
@@ -63,7 +73,15 @@ void loop() {
           }
           // response with denied code
           else {
-            // TODO: respond with RR_CODE_DENIED
+            // respond with RR_CODE_DENIED
+            byte package[MAX_PACKAGE_LENGTH] = {0};
+            createPackageHeader(
+              package,
+              RR_CODE_DENIED,
+              PERSONAL_ADDRESS,
+              BASE_ADDRESS
+            );
+            sendPackage(&transmitter0_serial, package);
             Serial.print("Denied RR_CODE_LOGIN from ");
             Serial.print(source_address);
           }
@@ -78,23 +96,23 @@ void loop() {
           break;
         default:
           Serial.print("Received package with unknown RR_CODE: ");
-          Serial.println(package[2]);
+          Serial.println(received_package[2]);
           break;
       }
     }
 
     // free old package
-    package_index = 0;
+    received_package_index = 0;
     for(int i = 0; i < MAX_PACKAGE_LENGTH; i++) {
-      package[i] = 0;
+      received_package[i] = 0;
     }
   }
   else if(started_receiving_package + TIMEOUT < millis()) {
 
     // free old package
-    package_index = 0;
+    received_package_index = 0;
     for(int i = 0; i < MAX_PACKAGE_LENGTH; i++) {
-      package[i] = 0;
+      received_package[i] = 0;
     }
   }
   
