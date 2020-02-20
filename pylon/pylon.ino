@@ -59,11 +59,10 @@ void loop() {
             byte package[MAX_PACKAGE_LENGTH] = {0};
             createPackageHeader(
               package,
-              RR_CODE_PYLON_STATUS,
+              RR_CODE_ACK,
               PERSONAL_ADDRESS,
               BASE_ADDRESS
             );
-            // TODO: set data
             sendPackage(&transmitter0_serial, package);
             
             Serial.print("Accepted RR_CODE_LOGIN from ");

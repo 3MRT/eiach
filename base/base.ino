@@ -19,7 +19,7 @@ bool logged_in_pylons[(sizeof(saved_pylon_addresses)/sizeof(saved_pylon_addresse
   = {false}; // saved state of all pylons addresss = saved_pylon_addresses[index]
   
 /// parsing variables (cr => current request)
-int16_t cr_address_index = 0; // save where the parsing currently is
+int16_t cr_address_index = -1; // save where the parsing currently is
 uint8_t cr_rr_code = 0; // request code of current request
 long cr_timeout = 0; // timeout of current request
 long cr_start_time = 0; // for performance tests
@@ -96,7 +96,37 @@ void loop() {
       if(testPackage(received_package, PERSONAL_ADDRESS)) {
         printPackage(received_package);
         uint16_t source_address = received_package[6] << 5 | received_package[4];
-        // switch(received_package[2]) {}
+        // requested code for package
+        switch(cr_rr_code) {
+          
+          // handle responses of login requests
+          case RR_CODE_LOGIN:
+            switch(received_package[2]) {
+              // pylon accepted login request
+              case RR_CODE_ACK:
+                Serial.println("Pylon accepted request!");
+                // mark as logged in
+                logged_in_pylons[cr_address_index] = true;
+                break;
+              // pylon denied login request
+              // probably because it was connected to another base
+              case RR_CODE_DENIED:
+                Serial.println("Pylon denied request!");
+                logged_in_pylons[cr_address_index] = false;
+                break;
+              default:
+                Serial.print("Received package with unknown RR_CODE: ");
+                Serial.println(received_package[2]);
+                break;
+            }
+            break;
+
+          
+          default:
+            Serial.print("Sent package with unknown RR_CODE: ");
+            Serial.println(cr_rr_code);
+            break;
+        }
       }
 
       cr_rr_code = 0;
@@ -111,6 +141,14 @@ void loop() {
   }
   // when not waiting for a package continue parsing
   else {
+    // proceed to next cr_address_index
+    cr_address_index++;
+    // begin at 0 if end is reached and end pairing
+    if(cr_address_index >= sizeof(logged_in_pylons)) {
+      cr_address_index = 0;
+      pairing = false;
+    }
+    
     // checking for login of every pylon
     if(pairing && logged_in_pylons[cr_address_index] == false) {
       Serial.print("Sending pairing request to pylon-id ");
@@ -140,14 +178,6 @@ void loop() {
       Serial.print("Sending ping to pylon-id ");
       Serial.println(saved_pylon_addresses[cr_address_index]);
       // TODO: pining
-    }
-
-    // proceed to next cr_address_index
-    cr_address_index++;
-    // begin at 0 if end is reached and end pairing
-    if(cr_address_index >= sizeof(logged_in_pylons)) {
-      cr_address_index = 0;
-      pairing = false;
     }
   }
 }

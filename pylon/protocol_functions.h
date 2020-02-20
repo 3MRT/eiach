@@ -7,7 +7,7 @@ void sendPackage(SoftwareSerial *transmitter, byte package[]);
 void createPackageHeader(byte package[], uint8_t rr_code, uint16_t personal_address, uint16_t destination_address) {
   package[0] = VERSION;
   package[1] = 0; // TODO: create checksum
-  package[2] = RR_CODE_LOGIN;
+  package[2] = rr_code;
   package[3] = MAX_PACKAGE_LENGTH; // TODO: get length
   // source address
   package[4] = (personal_address >> 8) & 0xff;
