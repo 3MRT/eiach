@@ -14,3 +14,7 @@
 |   50-52   |   Transmitter 1 (base only)   |
 
 ### Bidirectional Urgent Response Protocol (BURP)
+
+#### Problems
+* protocol_functions.h and protocol_settings.h must be synced manually in in base/ and pylon/
+* Only one software serial at a time is possible

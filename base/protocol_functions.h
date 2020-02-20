@@ -1,3 +1,22 @@
+////////// TEST FUNCTIONS //////////
+
+bool testPackage(uint16_t personal_address);
+
+bool testPackage(byte package[], uint16_t personal_address) {
+  // test same version
+  if(package[0] != VERSION) {
+    return false;
+  }
+  // TODO: test checksum
+  // TODO: check recipient
+  uint16_t recipient_address = package[6] << 8 | package[7];
+  if(recipient_address != personal_address) {
+    return false;
+  }
+  // TODO: check data length validity
+  return true;
+}
+
 ////////// DEBUGGING FUNCTIONS //////////
 
 void printPackage(byte package[]);

@@ -15,17 +15,18 @@ const uint16_t PERSONAL_ADDRESS = 0; // must be unique
 uint8_t ALERT_CHANNEL = 0;
 
 uint16_t saved_pylon_addresses[] = {1, 2}; // addresses of pylons that will be parsed
-bool logged_in_pylons[(sizeof(SAVED_PYLON_ADDRESSES)/sizeof(SAVED_PYLON_ADDRESSES[0]))] 
+bool logged_in_pylons[(sizeof(saved_pylon_addresses)/sizeof(saved_pylon_addresses[0]))] 
   = {false}; // saved state of all pylons addresss = saved_pylon_addresses[index]
   
 /// parsing variables (cr => current request)
-uint16_t cr_address_index = 0; // save where the parsing currently is
-uint8_t cr_rr_code = NULL; // request code of current request
-long cr_timeout = NULL; // timeout of current request
+int16_t cr_address_index = 0; // save where the parsing currently is
+uint8_t cr_rr_code = 0; // request code of current request
+long cr_timeout = 0; // timeout of current request
+long cr_start_time = 0; // for performance tests
 
 // true: searching for unconnected devices
 // false: always testing connections to pylons
-bool paring = true; 
+bool pairing = true; 
 
 
 void setup() {
@@ -39,6 +40,7 @@ void setup() {
   Serial.begin(9600);
   transmitter0_serial.begin(9600);
   // transmitter1_serial.begin(9600);
+  Serial.println("////////// EIACH; BASE //////////");
 
   // use physical randomness
   randomSeed(analogRead(0));
@@ -52,26 +54,71 @@ void setup() {
   switchChannel(&transmitter0_serial, &transmitter0_set_pin, COM_CHANNEL);
   // TODO: uncomment when transmitter1 is connected
   // switchChannel(&transmitter1_serial, &transmitter1_set_pin, ALERT_CHANNEL);
-
-  // DEBUGGING
-  byte package[MAX_PACKAGE_LENGTH] = {0};
-  package[0] = VERSION;
-  package[1] = 0; // TODO: create checksum
-  package[2] = RR_CODE_PYLON_STATUS;
-  package[3] = 0; // TODO: get length
-  // source address
-  package[4] = (PERSONAL_ADDRESS >> 8) & 0xff;
-  package[5] = PERSONAL_ADDRESS & 0xff;
-
-  printPackage(package);
-  Serial.println();
 }
 
 void loop() {
-  if (transmitter0_serial.available()) {
-    Serial.write(transmitter0_serial.read());
+  long current_millis = millis();
+  // only listen when a package was sent
+  if(cr_rr_code > 0 && cr_timeout > 0) {
+    if (transmitter0_serial.available() && cr_timeout <= current_millis) {
+      // TODO: handle received data
+    }
+    else if(cr_timeout < current_millis) {
+      // TODO: handle timeout
+      Serial.println("Package timed out!");
+      cr_rr_code = 0;
+      cr_timeout = 0;
+      cr_start_time = 0;
+    }
+    else {
+      // waiting
+    }
   }
-  if (Serial.available()) {
-    transmitter0_serial.write(Serial.read());
+  // when not waiting for a package continue parsing
+  else {
+    // checking for login of every pylon
+    if(pairing && logged_in_pylons[cr_address_index] == false) {
+      Serial.print("Sending pairing request to pylon-id ");
+      Serial.println(saved_pylon_addresses[cr_address_index]);
+      // pairing
+      char package[MAX_PACKAGE_LENGTH] = {0};
+      package[0] = VERSION;
+      package[1] = 0; // TODO: create checksum
+      package[2] = RR_CODE_LOGIN;
+      package[3] = 9; // get length
+      // source address
+      package[4] = (PERSONAL_ADDRESS >> 8) & 0xff;
+      package[5] = PERSONAL_ADDRESS & 0xff;
+      // destination address
+      package[6] = (saved_pylon_addresses[cr_address_index] >> 8) & 0xff;
+      package[7] = saved_pylon_addresses[cr_address_index] & 0xff;
+      // alert channel
+      package[8] = ALERT_CHANNEL;
+      delay(25); // TODO: investigate why delay is required
+      // printPackage(package);
+
+      for(int i = 0; i < MAX_PACKAGE_LENGTH; i++) {
+        transmitter0_serial.write(package[i]);
+      }
+
+      // set cr_rr_code and cr_timeout to wait for response
+      cr_rr_code = package[2];
+      cr_start_time = millis();
+      cr_timeout = cr_start_time + TIMEOUT;
+    }
+    // test availability of every pylon
+    else if(!pairing && logged_in_pylons[cr_address_index] == true) {
+      Serial.print("Sending ping to pylon-id ");
+      Serial.println(saved_pylon_addresses[cr_address_index]);
+      // TODO: pining
+    }
+
+    // proceed to next cr_address_index
+    cr_address_index++;
+    // begin at 0 if end is reached and end pairing
+    if(cr_address_index >= sizeof(logged_in_pylons)) {
+      cr_address_index = 0;
+      pairing = false;
+    }
   }
 }
