@@ -64,7 +64,7 @@ void loop() {
   // only listen when a package was sent
   if(cr_rr_code > 0 && cr_timeout > 0) {
     if (transmitter0_serial.available() 
-        && cr_timeout <= current_millis 
+        && cr_timeout > current_millis 
         && received_package_index < MAX_PACKAGE_LENGTH) {
       // handle received data
       if(received_package_index == 0) {
@@ -94,7 +94,7 @@ void loop() {
     if(received_package_index >= MAX_PACKAGE_LENGTH) {
       // received full package
       if(testPackage(received_package, PERSONAL_ADDRESS)) {
-        printPackage(received_package);
+        // printPackage(received_package);
         uint16_t source_address = received_package[6] << 5 | received_package[4];
         // requested code for package
         switch(cr_rr_code) {
@@ -104,7 +104,9 @@ void loop() {
             switch(received_package[2]) {
               // pylon accepted login request
               case RR_CODE_ACK:
-                Serial.println("Pylon accepted request!");
+                Serial.print("Pylon accepted request! Time used: ");
+                Serial.print(millis() - cr_start_time);
+                Serial.println("ms");
                 // mark as logged in
                 logged_in_pylons[cr_address_index] = true;
                 break;
@@ -175,8 +177,8 @@ void loop() {
     }
     // test availability of every pylon
     else if(!pairing && logged_in_pylons[cr_address_index] == true) {
-      Serial.print("Sending ping to pylon-id ");
-      Serial.println(saved_pylon_addresses[cr_address_index]);
+      /*Serial.print("Sending ping to pylon-id ");
+      Serial.println(saved_pylon_addresses[cr_address_index]);*/
       // TODO: pining
     }
   }

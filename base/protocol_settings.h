@@ -3,7 +3,7 @@ const uint8_t VERSION = 1;
 
 // DEFAULT SETTINGS
 const uint8_t COM_CHANNEL = 1; // default communication channel
-const int TIMEOUT = 1000;
+const int TIMEOUT = 500;
 
 // RESPONSE/REQUEST CODES
 // 0 should not be used!
