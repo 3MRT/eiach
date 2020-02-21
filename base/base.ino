@@ -34,8 +34,15 @@ bool pairing = true;
 enum ALARM_TYPES {off, silent, note, critical};
 int alarm = 0;
 
+// OTHER PINS
+int alarm_pin = 9;
+
 
 void setup() {
+  pinMode(alarm_pin, OUTPUT);
+  tone(alarm_pin, 440);
+  delay(100);
+  noTone(alarm_pin);
   // configure set pins of transmitters
   pinMode(transmitter0_set_pin, OUTPUT);
   digitalWrite(transmitter0_set_pin, HIGH);
@@ -256,5 +263,13 @@ void loop() {
       cr_start_time = millis();
       cr_timeout = cr_start_time + TIMEOUT;
     }
+  }
+
+  // alarm management
+  if(alarm == critical) {
+    tone(alarm_pin, 440);
+  }
+  else {
+    noTone(alarm_pin);
   }
 }
