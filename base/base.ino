@@ -235,7 +235,8 @@ void loop() {
     }
     // test availability of every pylon
     else if(!pairing && logged_in_pylons[cr_address_index] == true) {
-      Serial.print("Sending ping to pylon-id ");
+      Serial.println();
+      Serial.print("Sending RR_CODE_KEEP_ALIVE to pylon-id ");
       Serial.println(saved_pylon_addresses[cr_address_index]);
       // pining
       byte package[MAX_PACKAGE_LENGTH] = {0};

@@ -2,6 +2,7 @@
 
 void createPackageHeader(byte package[], uint8_t rr_code, uint16_t personal_address, uint16_t destination_address);
 void sendPackage(SoftwareSerial *transmitter, byte package[]);
+uint8_t getChecksum(byte package[]);
 
 // create header byte array for package
 void createPackageHeader(byte package[], uint8_t rr_code, uint16_t personal_address, uint16_t destination_address) {
@@ -18,9 +19,24 @@ void createPackageHeader(byte package[], uint8_t rr_code, uint16_t personal_addr
 }
 // send a package over software serial
 void sendPackage(SoftwareSerial *transmitter, byte package[]) {
+  // calculate checksum
+  package[1] = getChecksum(package);
+  
   for(int i = 0; i < MAX_PACKAGE_LENGTH; i++) {
     (*transmitter).write(package[i]);
   }
+}
+// calculate checksum of a package
+uint8_t getChecksum(byte package[]) {
+  // set original checksum to 0
+  package[1] = 0;
+
+  // checksum is the sum of the decimal values
+  uint8_t checksum = 0;
+  for(int i = 0; i < package[3] && i < MAX_PACKAGE_LENGTH; i++) {
+    checksum += int(package[i]);
+  }
+  return checksum;
 }
 
 ////////// TEST FUNCTIONS //////////
@@ -32,8 +48,12 @@ bool testPackage(byte package[], uint16_t personal_address) {
   if(package[0] != VERSION) {
     return false;
   }
-  // TODO: test checksum
-  // TODO: check recipient
+  // test checksum
+  uint8_t checksum = package[1];
+  if(checksum != getChecksum(package)) {
+    return false;
+  }
+  // check recipient
   uint16_t recipient_address = package[6] << 8 | package[7];
   if(recipient_address != personal_address) {
     return false;
