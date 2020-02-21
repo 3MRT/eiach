@@ -1,4 +1,0 @@
-{
-    "port": "/dev/ttyACM1",
-    "programmer": "Arduino as ISP"
-}
