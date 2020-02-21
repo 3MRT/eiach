@@ -26,10 +26,13 @@ long cr_start_time = 0; // for performance tests
 // receiving a package
 byte received_package[MAX_PACKAGE_LENGTH] = {0};
 uint8_t received_package_index = 0;
+int failed_ping_requests = 0;
 
 // true: searching for unconnected devices
 // false: always testing connections to pylons
 bool pairing = true; 
+enum ALARM_TYPES {off, silent, note, critical};
+int alarm = 0;
 
 
 void setup() {
@@ -76,12 +79,21 @@ void loop() {
     }
     else if(cr_timeout < current_millis) {
       // TODO: handle timeout
-      Serial.println("Package timed out!");
+      Serial.print("Package timed out");
 
       if(cr_rr_code == RR_CODE_KEEP_ALIVE) {
         // TODO: alert
-        Serial.println("ALERT!");
+        failed_ping_requests++;
+        if(failed_ping_requests < PING_REDUNDANCY) {
+          Serial.print("; Trying again!");
+          cr_address_index--;
+        }
+        else {
+          Serial.print("; PING_REDUNDANCY exceeded! => alarm = critical");
+          alarm = critical;
+        }
       }
+      Serial.println();
       
       cr_rr_code = 0;
       cr_timeout = 0;
@@ -135,6 +147,34 @@ void loop() {
               Serial.print(millis() - cr_start_time);
               Serial.println("ms");
               // TODO: parse pylon status
+              if((received_package[8] >> 7) & 1) { // alarm
+                Serial.println("Pylon has started alarm; alarm = critical");
+                alarm = critical;
+              }
+              if(!(received_package[8] >> 5) & 1) { // not functional
+                Serial.println("Pylon's gyroscope is not functional; alarm = critical");
+                alarm = critical;
+              }
+              if((received_package[8] >> 6) & 1) { // low_battery
+                Serial.println("Pylon's battery is low; alarm = note");
+                alarm = note;
+              }
+              if((received_package[8] >> 4) & 1) { // request shutdown
+                Serial.println("Pylon requested shutdown; sending RR_CODE_SHUTDOWN_ACK");
+                // log out 
+                logged_in_pylons[cr_address_index] = false;
+                // response with RR_CODE_SHUTDOWN_ACK
+                byte package[MAX_PACKAGE_LENGTH] = {0};
+                createPackageHeader(
+                  package,
+                  RR_CODE_SHUTDOWN_ACK,
+                  PERSONAL_ADDRESS,
+                  saved_pylon_addresses[cr_address_index]
+                );
+                sendPackage(&transmitter0_serial, package);
+              }
+              // reset ping requests
+              failed_ping_requests = 0;
             }
             else {
               Serial.print("Invalid response code: ");
@@ -197,7 +237,7 @@ void loop() {
     else if(!pairing && logged_in_pylons[cr_address_index] == true) {
       Serial.print("Sending ping to pylon-id ");
       Serial.println(saved_pylon_addresses[cr_address_index]);
-      // TODO: pining
+      // pining
       byte package[MAX_PACKAGE_LENGTH] = {0};
       createPackageHeader(
         package,

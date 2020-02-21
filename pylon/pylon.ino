@@ -18,6 +18,12 @@ byte received_package[MAX_PACKAGE_LENGTH] = {0};
 uint8_t received_package_index = 0;
 long started_receiving_package = 0;
 
+// pylon variables
+bool alarm = false;
+bool low_battery = false;
+bool functional = true;
+bool request_shutdown = false;
+
 void setup() {
   // configure set pins of transmitters
   pinMode(transmitter0_set_pin, OUTPUT);
@@ -96,6 +102,13 @@ void loop() {
               PERSONAL_ADDRESS,
               BASE_ADDRESS
             );
+
+            // set data
+            if(alarm) { package[8] |= 1UL << 7; }
+            if(low_battery) { package[8] |= 1UL << 6; }
+            if(functional) { package[8] |= 1UL << 5; }
+            if(request_shutdown) { package[8] |= 1UL << 4; }
+            
             Serial.println(" -> Responded with RR_CODE_PYLON_STATUS");
             sendPackage(&transmitter0_serial, package);
           }
