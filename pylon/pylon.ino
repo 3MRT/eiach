@@ -87,10 +87,24 @@ void loop() {
           break;
         case RR_CODE_KEEP_ALIVE:
           Serial.print("Received package: RR_CODE_KEEP_ALIVE");
-          // TODO
+          // response with RR_CODE_PYLON_STATUS
+          if(BASE_ADDRESS == source_address) {
+            byte package[MAX_PACKAGE_LENGTH] = {0};
+            createPackageHeader(
+              package,
+              RR_CODE_PYLON_STATUS,
+              PERSONAL_ADDRESS,
+              BASE_ADDRESS
+            );
+            Serial.println(" -> Responded with RR_CODE_PYLON_STATUS");
+            sendPackage(&transmitter0_serial, package);
+          }
+          else {
+            Serial.println(" -> ERROR: Not from own base");
+          }
           break;
         case RR_CODE_SHUTDOWN_ACK:
-          Serial.print("Received package: RR_CODE_SHUTDOWN_ACK");
+          Serial.println("Received package: RR_CODE_SHUTDOWN_ACK");
           // TODO
           break;
         default:

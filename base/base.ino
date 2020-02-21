@@ -77,6 +77,12 @@ void loop() {
     else if(cr_timeout < current_millis) {
       // TODO: handle timeout
       Serial.println("Package timed out!");
+
+      if(cr_rr_code == RR_CODE_KEEP_ALIVE) {
+        // TODO: alert
+        Serial.println("ALERT!");
+      }
+      
       cr_rr_code = 0;
       cr_timeout = 0;
       cr_start_time = 0;
@@ -123,6 +129,18 @@ void loop() {
             }
             break;
 
+          case RR_CODE_KEEP_ALIVE:
+            if(received_package[2] == RR_CODE_PYLON_STATUS) {
+              Serial.print("Received response RR_CODE_PYLON_STATUS; Time used: ");
+              Serial.print(millis() - cr_start_time);
+              Serial.println("ms");
+              // TODO: parse pylon status
+            }
+            else {
+              Serial.print("Invalid response code: ");
+              Serial.println(received_package[2]);
+            }
+            break;
           
           default:
             Serial.print("Sent package with unknown RR_CODE: ");
@@ -177,9 +195,24 @@ void loop() {
     }
     // test availability of every pylon
     else if(!pairing && logged_in_pylons[cr_address_index] == true) {
-      /*Serial.print("Sending ping to pylon-id ");
-      Serial.println(saved_pylon_addresses[cr_address_index]);*/
+      Serial.print("Sending ping to pylon-id ");
+      Serial.println(saved_pylon_addresses[cr_address_index]);
       // TODO: pining
+      byte package[MAX_PACKAGE_LENGTH] = {0};
+      createPackageHeader(
+        package,
+        RR_CODE_KEEP_ALIVE,
+        PERSONAL_ADDRESS,
+        saved_pylon_addresses[cr_address_index]
+      );
+      // printPackage(package);
+
+      sendPackage(&transmitter0_serial, package);
+
+      // set cr_rr_code and cr_timeout to wait for response
+      cr_rr_code = package[2];
+      cr_start_time = millis();
+      cr_timeout = cr_start_time + TIMEOUT;
     }
   }
 }
