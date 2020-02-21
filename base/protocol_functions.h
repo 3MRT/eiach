@@ -102,11 +102,13 @@ bool testPackage(uint16_t personal_address);
 bool testPackage(byte package[], uint16_t personal_address) {
   // test same version
   if(package[0] != VERSION) {
+    Serial.println("Received package with invalid version");
     return false;
   }
   // test checksum
   uint8_t checksum = package[1];
   if(checksum != getChecksum(package)) {
+    Serial.println("Received package with invalid checksum");
     return false;
   }
   // check recipient
@@ -114,7 +116,17 @@ bool testPackage(byte package[], uint16_t personal_address) {
   if(recipient_address != personal_address) {
     return false;
   }
-  // TODO: check data length validity
+  // check valid rr_code
+  if(package[2] < 1 && package[2] > 7) {
+    Serial.println("Received package with invalid rr_code");
+    return false;
+  }
+  // check data length validity
+  if(package[3] < DATA_MIN_LENGTH[package[2]] + 8 
+    && package[3] > DATA_MAX_LENGTH[package[2]] + 8) {
+    Serial.println("Received package with invalid length");
+    return false;
+  }
   return true;
 }
 
