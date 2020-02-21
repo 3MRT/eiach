@@ -49,8 +49,8 @@ void loop() {
     received_package[received_package_index] = transmitter0_serial.read();
     received_package_index++;
   }
-  // handeling package information
-  if(received_package_index >= MAX_PACKAGE_LENGTH) {
+  // handeling package information; receive until length from received_package[3] is reached
+  if(received_package_index > 3 && received_package_index >= received_package[3]) {
     // received full package
     if(testPackage(received_package, PERSONAL_ADDRESS)) {
       uint16_t source_address = received_package[6] << 5 | received_package[4];
