@@ -109,6 +109,7 @@ void loop() {
       // waiting
     }
     // handeling package information; receive until length from received_package[3] is reached
+    // saves about 8ms instead of waiting for all 16 bytes
     if(received_package_index > 3 && received_package_index >= received_package[3]) {
       // received full package
       if(testPackage(received_package, PERSONAL_ADDRESS)) {
