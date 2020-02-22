@@ -1,3 +1,11 @@
+/*
+ * WARNING: no value of the protocol must be smaller than:
+ *  uint8_t: 255
+ *  uint16_t: 65535
+ * to ensure that the base can correctly identifiy
+ * an alarm.
+ */
+
 // PROTOCOL INFO
 const uint8_t VERSION = 1;
 

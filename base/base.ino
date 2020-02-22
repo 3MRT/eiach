@@ -27,6 +27,9 @@ long cr_start_time = 0; // for performance tests
 byte received_package[MAX_PACKAGE_LENGTH] = {0};
 uint8_t received_package_index = 0;
 int failed_ping_requests = 0;
+// when a pylon sets of an alarm, it jams the frequency with
+// bytes of 11111111 equal to int 255.
+int following_255 = 0;
 
 // true: searching for unconnected devices
 // false: always testing connections to pylons
@@ -82,6 +85,12 @@ void loop() {
       }
       
       received_package[received_package_index] = transmitter0_serial.read();
+      if(int(received_package[received_package_index]) == 255) {
+        following_255++;
+      }
+      else {
+        following_255 = 0;
+      }
       received_package_index++;
     }
     else if(cr_timeout < current_millis) {
@@ -117,7 +126,8 @@ void loop() {
     }
     // handeling package information; receive until length from received_package[3] is reached
     // saves about 8ms instead of waiting for all 16 bytes
-    if(received_package_index > 3 && received_package_index >= received_package[3]) {
+    if(received_package_index > 3 && 
+        (received_package_index >= received_package[3] || received_package_index >= MAX_PACKAGE_LENGTH)) {
       // received full package
       if(testPackage(received_package, PERSONAL_ADDRESS)) {
         // printPackage(received_package);
@@ -207,6 +217,14 @@ void loop() {
       }
     }
   }
+  else if(transmitter0_serial.available()) {
+    if(int(transmitter0_serial.read()) == 255) {
+      following_255++;
+    }
+    else {
+      following_255 = 0;
+    }
+  }
   // when not waiting for a package continue parsing
   else {
     // proceed to next cr_address_index
@@ -263,6 +281,12 @@ void loop() {
       cr_start_time = millis();
       cr_timeout = cr_start_time + TIMEOUT;
     }
+  }
+
+  // when following_255 is to large, an alarm is detected
+  if(following_255 > 2) {
+    Serial.println("Detected alarm from pylon!");
+    alarm = critical;
   }
 
   // alarm management
