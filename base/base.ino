@@ -94,12 +94,16 @@ void loop() {
       received_package_index++;
     }
     else if(cr_timeout < current_millis) {
-      // TODO: handle timeout
-      Serial.print("Package timed out");
+      // handle timeout
+      Serial.print("Package timed out; Time: ");
+      Serial.print(millis());
+      Serial.print("ms");
 
       if(cr_rr_code == RR_CODE_KEEP_ALIVE) {
         // TODO: alert
         failed_ping_requests++;
+        Serial.print("; Failed ping requests: ");
+        Serial.print(failed_ping_requests);
         if(failed_ping_requests < PING_REDUNDANCY) {
           Serial.print("; Trying again!");
           cr_address_index--;

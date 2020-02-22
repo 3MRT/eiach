@@ -12,7 +12,7 @@ const uint8_t VERSION = 1;
 // DEFAULT SETTINGS
 const uint8_t COM_CHANNEL = 1; // default communication channel
 const int TIMEOUT = 120;
-const int PING_REDUNDANCY = 7; // if a ping failes, try again 7x before starting alert
+const int PING_REDUNDANCY = 4; // if a ping failes, try again 4x before starting alert
 
 // RESPONSE/REQUEST CODES
 // 0 should not be used!
