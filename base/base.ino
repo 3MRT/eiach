@@ -5,10 +5,8 @@
 
 // INITIALIZE VARS
 // setup transceiver modules
-SoftwareSerial transmitter0_serial(11, 10);
-int transmitter0_set_pin = 12;
-SoftwareSerial transmitter1_serial(51, 50);
-int transmitter1_set_pin = 52;
+SoftwareSerial transmitter0_serial(2, 3);
+int transmitter0_set_pin = 10;
 
 // PROTOCOL INIT
 const uint16_t PERSONAL_ADDRESS = 0; // must be unique
@@ -38,7 +36,7 @@ enum ALARM_TYPES {off, silent, note, critical};
 int alarm = 0;
 
 // OTHER PINS
-int alarm_pin = 9;
+int alarm_pin = 12;
 
 
 void setup() {
@@ -49,8 +47,6 @@ void setup() {
   // configure set pins of transmitters
   pinMode(transmitter0_set_pin, OUTPUT);
   digitalWrite(transmitter0_set_pin, HIGH);
-  pinMode(transmitter1_set_pin, OUTPUT);
-  digitalWrite(transmitter1_set_pin, HIGH);
 
   // begin serial communication
   Serial.begin(9600);
@@ -68,8 +64,6 @@ void setup() {
 
   // switch to default com channel
   switchChannel(&transmitter0_serial, &transmitter0_set_pin, COM_CHANNEL);
-  // TODO: uncomment when transmitter1 is connected
-  // switchChannel(&transmitter1_serial, &transmitter1_set_pin, ALERT_CHANNEL);
 }
 
 void loop() {

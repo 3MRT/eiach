@@ -5,8 +5,8 @@
 
 // INITIALIZE VARS
 // setup transceiver modules
-SoftwareSerial transmitter0_serial(11, 10);
-int transmitter0_set_pin = 12;
+SoftwareSerial transmitter0_serial(2, 3);
+int transmitter0_set_pin = 10;
 
 // PROTOCOL INIT
 const uint16_t PERSONAL_ADDRESS = 1; // must be unique
