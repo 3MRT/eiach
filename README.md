@@ -1,4 +1,4 @@
-# EIACH
+# Pylon based Collision Detection System - PCDS
 
 ### Pins in Use
 
@@ -11,9 +11,8 @@
 |   Pins    |   Usage                       |
 |-----------|-------------------------------|
 |   10-12   |   Transmitter 0               |
-|   50-52   |   Transmitter 1 (base only)   |
 
-### Bidirectional Urgent Response Protocol (BURP)
+### Bidirectional Urgent Response Pylon Data Transfer Protocol (BURP-DTP)
 
 #### Problems
 * protocol_functions.h and protocol_settings.h must be synced manually in in base/ and pylon/
