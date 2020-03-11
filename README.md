@@ -1,6 +1,5 @@
-# EIACH
-
-```To build the project you have to include the "libraries" folder as a library!```
+# Pylon based Collision Detection System - PCDS
+```To build the project you have to include the "libraries" folder!```
 
 ### Pins in Use
 
@@ -8,4 +7,4 @@
 |-----------|-------------------------------|
 |   10-12   |   Transmitter 0               |
 
-### Bidirectional Urgent Response Protocol (BURP)
+### Bidirectional Urgent Response Pylon Data Transfer Protocol (BURP-DTP)
