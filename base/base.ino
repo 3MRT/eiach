@@ -1,12 +1,14 @@
 // INCLUDE LIBRARIES AND FILES
 #include <SoftwareSerial.h>
-#include "protocol_settings.h"
-#include "protocol_functions.h"
+#include <protocol_settings.h>
+#include <protocol_functions.h>
 
 // INITIALIZE VARS
 // setup transceiver modules
-SoftwareSerial transmitter0_serial(2, 3);
-int transmitter0_set_pin = 10;
+SoftwareSerial transmitter0_serial(11, 10);
+int transmitter0_set_pin = 12;
+SoftwareSerial transmitter1_serial(51, 50);
+int transmitter1_set_pin = 52;
 
 // PROTOCOL INIT
 const uint16_t PERSONAL_ADDRESS = 0; // must be unique
@@ -15,6 +17,7 @@ uint8_t ALERT_CHANNEL = 0;
 uint16_t saved_pylon_addresses[] = {1, 2}; // addresses of pylons that will be parsed
 bool logged_in_pylons[(sizeof(saved_pylon_addresses)/sizeof(saved_pylon_addresses[0]))] 
   = {false}; // saved state of all pylons addresss = saved_pylon_addresses[index]
+uint8_t connected_devices = 0;
   
 /// parsing variables (cr => current request)
 int16_t cr_address_index = -1; // save where the parsing currently is
@@ -36,10 +39,16 @@ enum ALARM_TYPES {off, silent, note, critical};
 int alarm = 0;
 
 // OTHER PINS
-int alarm_pin = 12;
+int alarm_pin = 9;
+int rgb_led_r = 7;
+int rgb_led_g = 6;
+int rgb_led_b = 5;
 
 
 void setup() {
+  pinMode(rgb_led_r, OUTPUT);
+  pinMode(rgb_led_g, OUTPUT);
+  pinMode(rgb_led_b, OUTPUT);
   pinMode(alarm_pin, OUTPUT);
   tone(alarm_pin, 440);
   delay(100);
@@ -47,6 +56,8 @@ void setup() {
   // configure set pins of transmitters
   pinMode(transmitter0_set_pin, OUTPUT);
   digitalWrite(transmitter0_set_pin, HIGH);
+  pinMode(transmitter1_set_pin, OUTPUT);
+  digitalWrite(transmitter1_set_pin, HIGH);
 
   // begin serial communication
   Serial.begin(9600);
@@ -64,13 +75,15 @@ void setup() {
 
   // switch to default com channel
   switchChannel(&transmitter0_serial, &transmitter0_set_pin, COM_CHANNEL);
+  // TODO: uncomment when transmitter1 is connected
+  // switchChannel(&transmitter1_serial, &transmitter1_set_pin, ALERT_CHANNEL);
 }
 
 void loop() {
   long current_millis = millis();
   // only listen when a package was sent
   if(cr_rr_code > 0 && cr_timeout > 0) {
-    if (transmitter0_serial.available() 
+    while (transmitter0_serial.available() 
         && cr_timeout > current_millis 
         && received_package_index < MAX_PACKAGE_LENGTH) {
       // handle received data
@@ -87,14 +100,14 @@ void loop() {
       }
       received_package_index++;
     }
-    else if(cr_timeout < current_millis) {
+    if(received_package_index < MAX_PACKAGE_LENGTH && cr_timeout < current_millis) {
       // handle timeout
       Serial.print("Package timed out; Time: ");
       Serial.print(millis());
       Serial.print("ms");
 
       if(cr_rr_code == RR_CODE_KEEP_ALIVE) {
-        // TODO: alert
+        // alert
         failed_ping_requests++;
         Serial.print("; Failed ping requests: ");
         Serial.print(failed_ping_requests);
@@ -143,6 +156,7 @@ void loop() {
                 Serial.println("ms");
                 // mark as logged in
                 logged_in_pylons[cr_address_index] = true;
+                connected_devices++;
                 break;
               // pylon denied login request
               // probably because it was connected to another base
@@ -162,7 +176,7 @@ void loop() {
               Serial.print("Received response RR_CODE_PYLON_STATUS; Time used: ");
               Serial.print(millis() - cr_start_time);
               Serial.println("ms");
-              // TODO: parse pylon status
+              // parse pylon status
               if((received_package[8] >> 7) & 1) { // alarm
                 Serial.println("Pylon has started alarm; alarm = critical");
                 alarm = critical;
@@ -179,6 +193,7 @@ void loop() {
                 Serial.println("Pylon requested shutdown; sending RR_CODE_SHUTDOWN_ACK");
                 // log out 
                 logged_in_pylons[cr_address_index] = false;
+                connected_devices--;
                 // response with RR_CODE_SHUTDOWN_ACK
                 byte package[MAX_PACKAGE_LENGTH] = {0};
                 createPackageHeader(
@@ -286,7 +301,24 @@ void loop() {
     Serial.println("Detected alarm from pylon!");
     alarm = critical;
   }
-
+  
+  // led status
+  if(alarm == critical) {
+    digitalWrite(rgb_led_r, HIGH);
+    digitalWrite(rgb_led_g, LOW);
+    digitalWrite(rgb_led_b, LOW);
+  }
+  else if(pairing || connected_devices <= 0) {
+    digitalWrite(rgb_led_r, LOW);
+    digitalWrite(rgb_led_g, LOW);
+    digitalWrite(rgb_led_b, HIGH);
+  }
+  else {
+    digitalWrite(rgb_led_r, LOW);
+    digitalWrite(rgb_led_g, HIGH);
+    digitalWrite(rgb_led_b, LOW);
+  }
+  
   // alarm management
   if(alarm == critical) {
     tone(alarm_pin, 440);

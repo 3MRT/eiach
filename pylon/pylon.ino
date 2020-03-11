@@ -1,12 +1,12 @@
 // INCLUDE LIBRARIES AND FILES
 #include <SoftwareSerial.h>
-#include "protocol_settings.h"
-#include "protocol_functions.h"
+#include <protocol_settings.h>
+#include <protocol_functions.h>
 
 // INITIALIZE VARS
 // setup transceiver modules
-SoftwareSerial transmitter0_serial(2, 3);
-int transmitter0_set_pin = 10;
+SoftwareSerial transmitter0_serial(11, 10);
+int transmitter0_set_pin = 12;
 
 // PROTOCOL INIT
 const uint16_t PERSONAL_ADDRESS = 1; // must be unique
@@ -24,7 +24,16 @@ bool low_battery = false;
 bool functional = true;
 bool request_shutdown = false;
 
+// OTHER PINS
+int rgb_led_r = 7;
+int rgb_led_g = 6;
+int rgb_led_b = 5;
+
+
 void setup() {
+  pinMode(rgb_led_r, OUTPUT);
+  pinMode(rgb_led_g, OUTPUT);
+  pinMode(rgb_led_b, OUTPUT);
   // configure set pins of transmitters
   pinMode(transmitter0_set_pin, OUTPUT);
   digitalWrite(transmitter0_set_pin, HIGH);
@@ -39,6 +48,24 @@ void setup() {
 }
 
 void loop() {
+
+  // led status
+  if(alarm) {
+    digitalWrite(rgb_led_r, HIGH);
+    digitalWrite(rgb_led_g, LOW);
+    digitalWrite(rgb_led_b, LOW);
+  }
+  else if(ALERT_CHANNEL == 0) {
+    digitalWrite(rgb_led_r, LOW);
+    digitalWrite(rgb_led_g, LOW);
+    digitalWrite(rgb_led_b, HIGH);
+  }
+  else {
+    digitalWrite(rgb_led_r, LOW);
+    digitalWrite(rgb_led_g, HIGH);
+    digitalWrite(rgb_led_b, LOW);
+  }
+  
   // DEBUGGING
   if(Serial.available()) {
     Serial.read();
@@ -68,7 +95,7 @@ void loop() {
         (received_package_index >= received_package[3] || received_package_index >= MAX_PACKAGE_LENGTH)) {
       // received full package
       if(testPackage(received_package, PERSONAL_ADDRESS)) {
-        uint16_t source_address = received_package[6] << 5 | received_package[4];
+        uint16_t source_address = received_package[4] << 8 | received_package[5];
         switch(received_package[2]) {
           case RR_CODE_LOGIN:
             // only accept if not logged in before or from same base
@@ -84,6 +111,7 @@ void loop() {
                 PERSONAL_ADDRESS,
                 BASE_ADDRESS
               );
+              // printPackage(package);
               sendPackage(&transmitter0_serial, package);
               
               Serial.print("Accepted RR_CODE_LOGIN from ");
