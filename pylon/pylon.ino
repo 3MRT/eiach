@@ -9,7 +9,7 @@ SoftwareSerial transmitter0_serial(11, 10);
 int transmitter0_set_pin = 12;
 
 // PROTOCOL INIT
-const uint16_t PERSONAL_ADDRESS = 1; // must be unique
+uint16_t PERSONAL_ADDRESS = 0; // must be unique
 uint16_t BASE_ADDRESS = NULL;
 uint8_t ALERT_CHANNEL = 0;
 
@@ -42,6 +42,9 @@ void setup() {
   Serial.begin(9600);
   Serial.println("////////// EIACH; PYLON //////////");
   transmitter0_serial.begin(9600);
+
+  // get personal address
+  PERSONAL_ADDRESS = getPersonalAddress();
 
   // switch to default com channel
   switchChannel(&transmitter0_serial, &transmitter0_set_pin, COM_CHANNEL);

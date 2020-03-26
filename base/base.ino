@@ -11,7 +11,7 @@ SoftwareSerial transmitter1_serial(51, 50);
 int transmitter1_set_pin = 52;
 
 // PROTOCOL INIT
-const uint16_t PERSONAL_ADDRESS = 0; // must be unique
+uint16_t PERSONAL_ADDRESS = 0; // must be unique
 uint8_t ALERT_CHANNEL = 0;
 
 uint16_t saved_pylon_addresses[] = {1, 2}; // addresses of pylons that will be parsed
@@ -64,6 +64,9 @@ void setup() {
   transmitter0_serial.begin(9600);
   // transmitter1_serial.begin(9600);
   Serial.println("////////// EIACH; BASE //////////");
+
+  // get personal address
+  PERSONAL_ADDRESS = getPersonalAddress();
 
   // use physical randomness
   randomSeed(analogRead(0));

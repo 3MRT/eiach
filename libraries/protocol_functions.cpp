@@ -1,4 +1,5 @@
 #include <protocol_functions.h>
+#include <protocol_settings.h>
 
 ////////// DEBUGGING FUNCTIONS //////////
 void printPackage(byte package[]) {
@@ -154,3 +155,38 @@ void executeAtCommand(SoftwareSerial *transmitter, int *set_pin, String command)
   digitalWrite(*set_pin, HIGH);
 }
 
+// get addess saved in eeprom
+uint16_t getPersonalAddress() {
+  // get address
+  int timeout = 0;
+  int input = EEPROM.read(0);
+  int oldInput = input;
+  int reset = input > 0 && Serial;
+
+  if(input == 0 || reset) {
+
+    if(reset) {
+      // if an address already exists, wait only 5s
+      timeout = millis() + 5000;
+    }
+
+    // wait for connection
+    while(!Serial) {}
+    Serial.print("(Waiting) Please input the UNIQUE personal address: ");
+
+    while(input == oldInput && (timeout == 0 || timeout > millis())) {
+      int parsed = Serial.parseInt();
+      if(parsed > 0) {
+        input = parsed;
+      }
+    }
+    // write address to eeprom
+    EEPROM.write(0, input);
+  }
+  else {
+    Serial.print("Personal address: ");
+  }
+
+  Serial.println(input);
+  return input;
+}
